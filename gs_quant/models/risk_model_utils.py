@@ -14,6 +14,8 @@ specific language governing permissions and limitations
 under the License.
 """
 
+# Portions copyright SimCorp. Licensed under Apache 2.0 license
+
 import datetime as dt
 import logging
 import math
@@ -232,13 +234,13 @@ def build_factor_volatility_dataframe(results: List, group_by_name: bool, factor
     return df
 
 
-def get_closest_date_index(date: dt.date, dates: List[str], direction: str) -> int:
+def get_closest_date_index(date: dt.date, dates: Union[tuple[dt.date, ...]|List[dt.date]], direction: str) -> int:
     for i in range(50):
         for index in range(len(dates)):
             if direction == 'before':
-                next_date = (date - dt.timedelta(days=i)).strftime('%Y-%m-%d')
+                next_date = date - dt.timedelta(days=i)
             else:
-                next_date = (date + dt.timedelta(days=i)).strftime('%Y-%m-%d')
+                next_date = date + dt.timedelta(days=i)
             if next_date == dates[index]:
                 return index
     return -1

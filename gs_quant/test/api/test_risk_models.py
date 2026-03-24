@@ -14,6 +14,8 @@ specific language governing permissions and limitations
 under the License.
 """
 
+# Portions copyright SimCorp. Licensed under Apache 2.0 license
+
 import datetime as dt
 
 from gs_quant.api.gs.risk_models import GsRiskModelApi, GsFactorRiskModelApi
@@ -222,6 +224,20 @@ def test_get_risk_model_calendar(mocker):
     response = GsRiskModelApi.get_risk_model_calendar('id')
     GsSession.current.sync.get.assert_called_with('/risk/models/{id}/calendar'.format(id='id'), cls=RiskModelCalendar)
     assert response == calendar
+
+
+def test_get_risk_model_dates(mocker):
+    # test fetching dates for model
+    calendar = RiskModelCalendar.from_dict({"businessDates": ["2020-03-31", "2020-04-30"]})
+    mocker.patch.object(
+        GsSession.__class__, 'default_value',
+        return_value=GsSession.get(Environment.QA, 'client_id', 'secret')
+    )
+    mocker.patch.object(GsSession.current.sync, 'get',
+                        return_value={'results' : calendar.businessDates})
+    response = GsRiskModelApi.get_risk_model_dates('id')
+    GsSession.current.sync.get.assert_called_with('/risk/models/{id}/dates?'.format(id='id'))
+    assert response == calendar.businessDates
 
 
 def test_upload_risk_model_calendar(mocker):

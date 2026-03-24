@@ -14,6 +14,8 @@ specific language governing permissions and limitations
 under the License.
 """
 
+# Portions copyright SimCorp. Licensed under Apache 2.0 license
+
 import datetime as dt
 from unittest import mock
 
@@ -32,7 +34,7 @@ from gs_quant.target.risk_models import (
     RiskModelType,
     RiskModelDataAssetsRequest as DataAssetsRequest,
     RiskModelDataMeasure as Measure,
-    RiskModelUniverseIdentifierRequest as UniverseIdentifier,
+    RiskModelUniverseIdentifierRequest as UniverseIdentifier, RiskModelCalendar
 )
 
 empty_entitlements = {"execute": [], "edit": [], "view": [], "admin": [], "query": [], "upload": []}
@@ -1752,6 +1754,53 @@ def test_get_currency_exchange_rate(mocker):
     )
 
     assert_frame_equal(expected_data_frame, actual_data_frame, check_like=True)
+
+
+def _build_calendar() -> RiskModelCalendar:
+    # return a calendar covering March and April 2010 with only weekdays as business dates
+    business_dates = list()
+    start_date = dt.date(2010, 2, 28)
+    for i in range(63):
+        next_date = start_date + dt.timedelta(days=i)
+        if next_date.weekday() >= 5: # skip weekends
+            continue
+        business_dates.append(next_date)
+    return RiskModelCalendar.from_dict({"businessDates": [str(d) for d in business_dates]})
+
+
+def test_get_calendar(mocker):
+    model = mock_risk_model(mocker)
+    calendar = _build_calendar()
+    mocker.patch.object(GsSession.current.sync, 'get', return_value=calendar)
+
+    calendar_dates = model.get_calendar(start_date=dt.date(2010, 3, 7),
+                                        end_date=dt.date(2010, 4, 29))
+    assert len(calendar_dates.business_dates) == 39
+    assert calendar_dates.business_dates[0] == dt.date(2010, 3, 8)
+    assert calendar_dates.business_dates[-1] == dt.date(2010, 4, 29)
+
+
+def test_get_missing_dates(mocker):
+    def _return_calendar_or_dates(url: str, **kwargs):
+        if 'dates' in url:
+            return {'results': tuple(str(d) for d in dates)}
+        elif 'calendar' in url:
+            return RiskModelCalendar(business_dates=calendar.business_dates)
+        return None
+
+    model = mock_risk_model(mocker)
+    calendar = _build_calendar()
+    dates = list(calendar.business_dates)
+    dates.remove(dt.date(2010, 3, 9))
+    dates.remove(dt.date(2010, 4, 14))
+    mocker.patch.object(GsSession.current.sync, 'get',
+                        side_effect=_return_calendar_or_dates)
+
+    missing_dates = model.get_missing_dates(start_date=dt.date(2010, 3, 1),
+                                            end_date=dt.date(2010, 4, 29))
+    assert len(missing_dates) == 2
+    assert missing_dates[0] == dt.date(2010, 3, 9)
+    assert missing_dates[1] == dt.date(2010, 4, 14)
 
 
 if __name__ == "__main__":
