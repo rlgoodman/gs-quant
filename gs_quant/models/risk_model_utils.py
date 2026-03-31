@@ -234,15 +234,39 @@ def build_factor_volatility_dataframe(results: List, group_by_name: bool, factor
     return df
 
 
-def get_closest_date_index(date: dt.date, dates: Union[tuple[dt.date, ...]|List[dt.date]], direction: str) -> int:
-    for i in range(50):
-        for index in range(len(dates)):
-            if direction == 'before':
-                next_date = date - dt.timedelta(days=i)
-            else:
-                next_date = date + dt.timedelta(days=i)
-            if next_date == dates[index]:
-                return index
+def get_closest_date_index(date: Union[str|dt.date], dates: Union[tuple[str, ...]|List[str]|tuple[dt.date, ...]|List[dt.date]], direction: str) -> int:
+    """
+    get_closest_date_index(date, dates, direction)
+
+    Returns the index of the closest date to the given date in the list of dates.
+    Note that the list of dates should already be sorted in ascending order.
+
+    If direction is 'after' and the given date is greater than all dates in the list, -1 is returned.
+    If direction is 'before' and the given date is less than all dates in the list, -1 is returned.
+    Otherwise the index of the closest or matching element is returned.
+
+    @param date: The date to find the closest match for.
+    @param dates: The list of dates to search in.
+    @param direction: The direction to search in. Can be 'after' or 'before'.
+
+    """
+    def to_date(d):
+        if isinstance(d, str):
+            return dt.datetime.strptime(d, "%Y-%m-%d").date()
+        return d
+
+    normalized = [to_date(d) for d in dates]
+    target = to_date(date)
+
+    if direction == 'after':
+        for i, d in enumerate(normalized):
+            if d >= target:
+                return i
+        return -1
+    elif direction == 'before':
+        for i in range(len(normalized) - 1, -1, -1):
+            if normalized[i] <= target:
+                return i
     return -1
 
 

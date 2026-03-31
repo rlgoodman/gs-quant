@@ -375,7 +375,7 @@ class MarqueeRiskModel(RiskModel):
         """Get T-1 date according to risk model calendar"""
         yesterday = dt.date.today() - dt.timedelta(1)
         calendar = self.get_calendar(end_date=yesterday).business_dates
-        return calendar[len(calendar) - 1]
+        return calendar[-1]
 
     def save(self):
         """Upload current Risk Model object to Marquee"""

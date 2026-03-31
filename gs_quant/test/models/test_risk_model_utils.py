@@ -14,6 +14,8 @@ specific language governing permissions and limitations
 under the License.
 """
 
+# Portions copyright SimCorp. Licensed under Apache 2.0 license
+
 from unittest.mock import ANY
 
 import pytest
@@ -21,7 +23,36 @@ from unittest import mock
 
 from gs_quant.session import GsSession, Environment
 
-from gs_quant.models.risk_model_utils import _upload_factor_data_if_present
+from gs_quant.models.risk_model_utils import _upload_factor_data_if_present, get_closest_date_index
+
+
+def test__get_closest_date_index_dates(mocker):
+    import datetime as dt
+    date_array = [dt.date(2021,5,12) + dt.timedelta(i) for i in range(60)]
+    # Test dates in the list
+    closest_index = get_closest_date_index(dt.date(2021,5,30), date_array, 'before')
+    assert closest_index == 18
+    closest_index = get_closest_date_index(dt.date(2021, 5, 31), date_array, 'after')
+    assert closest_index == 19
+    # Test a date after all dates in list
+    closest_index = get_closest_date_index(dt.date(2021, 8, 31), date_array, 'before')
+    assert closest_index == len(date_array)-1
+    closest_index = get_closest_date_index(dt.date(2021, 8, 31), date_array, 'after')
+    assert closest_index == -1
+    # Test a date before all dates in list
+    closest_index = get_closest_date_index(dt.date(2021, 1, 1), date_array, 'after')
+    assert closest_index == 0
+    closest_index = get_closest_date_index(dt.date(2021, 1, 1), date_array, 'before')
+    assert closest_index == -1
+
+
+def test__get_closest_date_index_strings(mocker):
+    import datetime as dt
+    date_array = tuple(str(dt.date(2021,5,12) + dt.timedelta(i)) for i in range(60))
+    closest_index = get_closest_date_index('2021-05-30', date_array, 'before')
+    assert closest_index == 18
+    closest_index = get_closest_date_index('2021-05-31', date_array, 'after')
+    assert closest_index == 19
 
 
 @pytest.mark.parametrize('total_factors', [100])
